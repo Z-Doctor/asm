@@ -1,0 +1,105 @@
+program sqrt;
+#include( "stdlib.hhf" )
+
+static
+	num: int32;
+	pos: int8;
+
+begin sqrt;
+
+	forever
+		try
+			stdout.put("Num: ");
+			stdin.get(num);	
+		unprotected
+			if(num > 0 || num == -1) then
+				break;
+			else
+				stdout.put("Num must be greater than 0", nl);
+			endif;
+		anyexception
+			stdout.put("Error Code: ", eax, nl);
+			stdout.put("Try again" nl);
+		endtry;
+	endfor;
+	
+	if(num <> -1) then
+		mov(num, eax);
+		push(eax);
+		stdout.put("Input = ", num, nl);
+		mov(0, ebx);
+		
+		// Finds the MSB position
+		while(eax <> 0) do
+			shr(1, eax);
+			inc(ebx);
+		endwhile;
+		
+		stdout.put("MSB = ", ebx, nl);
+		
+		// Pads to nearest 2
+			// pushes the number of MSB for later retreival
+			mov(ebx, eax);
+			mov(2, ebx);
+			
+			// 0's out edx for 32 bit division
+			xor(edx, edx);
+			// Divides by 2
+			div(ebx);
+			
+			stdout.put("Div = ", eax,  " Remainder = ", edx, nl);
+			// Takes the remainder (if any) and adds it to eax
+			add(edx, eax);
+			
+			// Multiplies eax by 2 in ebx
+			mul(ebx);
+			stdout.put("Padded = ", eax, nl);
+			
+		mov(eax, ebx);
+		pop(eax);
+		
+		// Goes through the procress of shifting by 2 to get the sqaure root
+		// eax has the origal number
+		// ebx has the padded bit count
+		
+		stdout.put("eax = ", eax, nl);
+		stdout.put("ebx = ", ebx, nl);
+		
+		mov(1, ecx);
+		mov(0, edx);
+		
+		for( sub(2, bx); ebx >= 0 && bx <= $7FFF; sub(2, bx) ) do
+			push(eax);
+			
+			if(bx > 0) then
+				for( push(bx); bx > 0; sub(2, bx) ) do
+					shr(2, eax);
+				endfor;
+				pop(bx);
+			endif;
+			
+			and(3, eax);
+			stdout.put("Shifted '", bx, "' = ", eax, nl);
+			
+			// The division
+				// Divides by 1
+				shl(1, edx);
+				shl(1, ecx);
+				or(1, ecx);
+				
+				if(ecx <= eax) then
+					or(1, edx);
+					sub(ecx, eax);
+					inc(ecx);
+				else
+					xor(1, ecx);
+				endif;
+			
+			pop(eax);
+			
+		endfor;
+		
+		stdout.put("Press enter to exit.");
+		stdin.readLn();
+	endif;
+end sqrt;
