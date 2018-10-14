@@ -1,14 +1,13 @@
 program sqrt;
-#include( "stdlib.hhf" )
+#include( "stdin.hhf" )
+#include( "stdout.hhf" )
 
 static
 	input: int32;
-	msb: int16;
-	paddedMSB: int16;
 	sqroot: int32;
 
 begin sqrt;
-
+stdout.put("Enter -1 to exit" nl);
 pickNumber:
 	forever
 		try
@@ -26,94 +25,81 @@ pickNumber:
 		endtry;
 	endfor;
 	
-	if(input <> -1) then
-		mov(input, eax);
-		mov(0, bx);
+	cmp(input, -1);
+	je stop;
+	
+	mov(input, eax);
+	mov(0, bx);
 		
-		// Finds the MSB position
-		while(eax <> 0) do
-			shr(1, eax);
-			inc(bx);
-		endwhile;
+// Finds the MSB position
+msbCheck:
+	cmp(eax, 0);
+	jne msbLoop;
+	jmp padMsb;
+msbLoop:	
+	shr(1, eax);
+	inc(bx);
+	jmp msbCheck;
 		
-		mov(bx, msb);
-		stdout.put("MSB = ", bx, nl);
+// Pads to nearest 2
+// 0's out edx for 32 bit division
+// Divides by 2
+// Takes the remainder (if any) and adds it to eax
+// Multiplies eax by 2 in ebx
+padMsb:
+	mov(bx, ax);
+	cwde();
+	xor(edx, edx);
+	mov(2, ebx);
+	div(ebx);
+	add(edx, eax);
+	mul(ebx);
+	mov(ax, bx);
+	mov(0, ecx);
+	mov(0, edx);
+	mov(0, sqroot);
+// Goes through the procress of shifting by 2 to get the sqaure root
+calcSqrt:
+	sub(2, bx);
+	//cmp(bx, $7FFF);
+	cmp(bx, 0);
+	jnge printResult;
+	mov(input, eax);
 		
-		// Pads to nearest 2
-			// pushes the number of MSB for later retreival
-			mov(bx, ax);
-			cwde();
-			
-			// 0's out edx for 32 bit division
-			xor(edx, edx);
-			// Divides by 2
-			mov(2, ebx);
-			div(ebx);
-			stdout.put("Div = ", eax,  " Remainder = ", edx, nl);
-			
-			// Takes the remainder (if any) and adds it to eax
-			add(edx, eax);
-			
-			// Multiplies eax by 2 in ebx
-			mul(ebx);
-			mov(ax, paddedMSB);
-			stdout.put("Padded = ", paddedMSB, nl);
+	// Shifts over bx amount of spaces and isolates them
+	cmp(bx, 0);
+	jng calcSqrt1;
+	push(bx);
+	shift:
+		shr(2, eax);
+		sub(2, bx);
+		cmp(bx, 0);
+		jg shift;
+		pop(bx);
+	// Binary division
+	calcSqrt1:
+		and(3, eax);
+		shl(1, edx);
+		shl(1, ecx);
+		or(1, ecx);	
+		or(sqroot, eax);	
+		cmp(eax, ecx);
+		jnge calcSqrt2;
+		or(1, edx);
+		sub(ecx, eax);
+		shl(2, eax);
+		mov(eax, sqroot);	
+		inc(ecx);
+		jmp calcSqrt;
 		
-		// Goes through the procress of shifting by 2 to get the sqaure root
-		mov(0, ecx);
-		mov(0, edx);
-		
-		mov(paddedMSB, bx);
-		
-		mov(0, sqroot);
-		
-		for( sub(2, bx); ebx >= 0 && bx <= $7FFF; sub(2, bx) ) do
-			mov(input, eax);
-			
-			// Shifts over bx amount of spaces and isolates them
-			if(bx > 0) then
-				for( push(bx); bx > 0; sub(2, bx) ) do
-					shr(2, eax);
-				endfor;
-				pop(bx);
-			endif;
-			and(3, eax);
-			stdout.put("Shifted '", bx, "' = ", eax, nl);
-
-			// The division
-				// Divides by 1
-				shl(1, edx);
-				shl(1, ecx);
-				or(1, ecx);
-				
-				or(sqroot, eax);
-				
-				stdout.put("eax = ", eax, nl);
-				stdout.put("ecx = ", ecx, nl);
-				
-				if(ecx <= eax) then
-					or(1, edx);
-					sub(ecx, eax);
-					shl(2, eax);
-					mov(eax, sqroot);	
-					inc(ecx);
-				else
-					xor(1, ecx);
-					shl(2, eax);
-					mov(eax, sqroot);
-				endif;
-				
-				stdout.put("edx = ", edx, nl);
-				stdout.put("sqroot = ", sqroot, nl);
-			
-		endfor;
-		
-		mov(edx, sqroot);
-		
-		stdout.put("The sqrt of '", input, " is '", sqroot, "'" nl);
-		
-		jmp pickNumber;
-		//stdout.put("Press enter to exit.");
-		//stdin.readLn();
-	endif;
+		calcSqrt2:
+			xor(1, ecx);
+			shl(2, eax);
+			mov(eax, sqroot);
+	jmp calcSqrt;
+printResult:
+	mov(edx, sqroot);	
+	stdout.put("The sqrt of '", input, " is '", sqroot, "'" nl);	
+	jmp pickNumber;
+stop:
 end sqrt;
